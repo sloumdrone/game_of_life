@@ -1,155 +1,186 @@
 #!/usr/bin/env python3
+#
+# Basic implementation of Conways Game of Life
+#
+# - - - - - - - - - - - - - - - - - - - - - - - - -
+#
+#   Q/q - Quit
+#   Up/Right - Speed up
+#   Down/Left - Slow down
+#   W/w - Toggle edge wrapping
+#   R/r - New random seed
+#_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
 from random import randint
 from time import sleep
 import curses
 import sys
 import signal
 
-speed = 0.1
+class game_of_life:
+    def __init__(self, screen):
+        curses.curs_set(0)
+        self.screen = screen
+        self.speed = 0.1
+        self.wrap = False
+        self.h = curses.LINES - 1
+        self.w = curses.COLS - 1
+        self.live_cell = '\u2588'
+        self.dead_cell = ' '
+        self.s1 = [[' ' for x in range(self.w)] for y in range(self.h)]
+        self.s2 = [[' ' for x in range(self.w)] for y in range(self.h)]
+        self.random_start()
+        self.screen.nodelay(True)
+        self.screen.clear()
 
-def check_surroundings(x, y, arr, h, w):
-    c = '\u2588'
-    neighbors = 0
+        self.mainloop()
 
-    if y - 1 >= 0 and arr[y - 1][x] == c:
-        neighbors += 1
-    elif y - 1 < 0 and arr[h - 1][x] == c:
-        neighbors += 1
-
-    if y + 1 < h and arr[y + 1][x] == c:
-        neighbors += 1
-    elif y + 1 >= h and arr[0][x]:
-        neighbors += 1
-
-    if x - 1 >= 0 and arr[y][x - 1] == c:
-        neighbors += 1
-    elif x - 1 < 0 and arr[y][w - 1] == c:
-        neighbors += 1
-
-    if x + 1 < w and arr[y][x + 1] == c:
-        neighbors += 1
-    elif x + 1 >= w and arr[y][0] == c:
-        neighbors += 1
-
-    if x - 1 >= 0 and y - 1 >= 0 and arr[y - 1][x - 1] == c:
-        neighbors += 1
-    # elif x - 1 < 0 and y - 1 >= 0 and arr[y - 1][w - 1] == c:
-    #     neighbors += 1
-    # elif x - 1 >= 0 and y - 1 < 0 and arr[h - 1][x - 1] == c:
-    #     neighbors += 1
-    # elif x - 1 < 0 and y - 1 < 0 and arr[h - 1][w - 1] == c:
-    #     neighbors += 1
-
-    if x + 1 < w and y + 1 < h and arr[y + 1][x + 1] == c:
-        neighbors += 1
-    # elif x + 1 >= w and y + 1 < h and arr[y + 1][0] == c:
-    #     neighbors += 1
-    # elif x + 1 < w and y + 1 >= h and arr[0][x + 1] == c:
-    #     neighbors += 1
-    # elif x + 1 >= w and y + 1 >= h and arr[0][0] == c:
-    #     neighbors += 1
-
-    if x + 1 < w and y - 1 >= 0 and arr[y - 1][x + 1] == c:
-        neighbors += 1
-    # elif x + 1 >= w and y - 1 >= 0 and arr[y - 1][0] == c:
-    #     neighbors += 1
-    # elif x + 1 < w and y - 1 < 0 and arr[h - 1][x + 1] == c:
-    #     neighbors += 1
-    # elif x + 1 >= w and y - 1 < 0 and arr[h - 1][0] == c:
-    #     neighbors += 1
-
-    if x - 1 >= 0 and y + 1 < h and arr[y + 1][x - 1] == c:
-        neighbors += 1
-    # elif x - 1 < 0 and y + 1 >= h and arr[0][w - 1] == c:
-    #     neighbors += 1
-    # elif x - 1 >= 0 and y + 1 >= h and arr[0][x - 1] == c:
-    #     neighbors += 1
-    # elif x - 1 < 0 and y + 1 < h and arr[y + 1][w - 1] == c:
-    #     neighbors += 1
-
-    return neighbors
+    def random_start(self):
+        for y in range(self.h):
+            offset = int(self.h * 0.2)
+            if y >= offset and y <= self.h - offset:
+                counter = 10
+            else:
+                counter = 50
+            for x in range(self.w):
+                self.s1[y][x] = self.live_cell if randint(1, counter) == 2 else self.dead_cell
 
 
-def update_cell(x, y, arr, h, w):
-    state = arr[y][x]
-    neighbors = check_surroundings(x, y, arr, h, w)
-    if arr[y][x] == ' ' and neighbors == 3:
-        state = '\u2588'
-    elif neighbors < 2 or neighbors > 3:
-        state = ' '
-
-    return state
-
-
-def random_start(arr,h,w):
-    for y in range(h):
-        offset = int(h * 0.2)
-        if y >= offset and y <= h - offset:
-            counter = 12
-        else:
-            counter = 75
-        for x in range(w):
-            arr[y][x] = '\u2588' if randint(1,counter) == 2 else ' '
-
-
-def main(screen):
-    global speed
-
-    # terminal dimensions
-    h = curses.LINES - 1
-    w = curses.COLS - 1
-
-    curses.curs_set(0)
-    screen.nodelay(True)
-    screen.clear()
-
-    s1 = [[' ' for x in range(w)] for y in range(h)]
-    s2 = [[' ' for x in range(w)] for y in range(h)]
-
-    #seed the first round
-    random_start(s1,h,w)
-
-    for y in range(h):
-        for x in range(w):
-            s2[y][x] = update_cell(x, y, s1, h, w)
-    for y in range(h):
-        for x in range(w):
-            s1[y][x] = s2[y][x]
-
-
-    while True:
-        inp = screen.getch()
+    def get_input(self):
+        inp = self.screen.getch()
         curses.flushinp()
-        if inp == 113 or inp == 27 or inp == 81:
+        if inp in [113, 27, 81]:
             sys.exit(0)
-        elif inp == 114 or inp == 82:
-            random_start(s1, h, w)
-        elif inp == curses.KEY_DOWN or inp == curses.KEY_LEFT:
-            if speed + 0.05 <= 0.8:
-                speed += 0.05
-        elif inp == curses.KEY_UP or inp == curses.KEY_RIGHT:
-            if speed - 0.05 >= 0:
-                speed -= 0.05
+        elif inp in [114, 82]:
+            self.random_start()
+        elif inp in [curses.KEY_DOWN, curses.KEY_LEFT]:
+            if self.speed + 0.05 <= 0.8:
+                self.speed += 0.05
+        elif inp in [curses.KEY_UP, curses.KEY_RIGHT]:
+            if self.speed - 0.05 >= 0:
+                self.speed -= 0.05
+        elif inp in [87, 119]:
+            self.wrap = not self.wrap
 
-        screen.erase()
 
-        for y in range(h):
-            for x in range(w):
-                s2[y][x] = update_cell(x, y, s1, h, w)
+    def mainloop(self):
+        while 1:
+            self.get_input()
+            self.screen.erase()
 
-        for y in range(h):
-            screen.addstr(y, 0, ''.join(s1[y]))
-        screen.refresh()
-        sleep(speed)
+            for y in range(self.h):
+                for x in range(self.w):
+                    self.s2[y][x] = self.update_cell(x, y)
 
-        for y in range(h):
-            for x in range(w):
-                s1[y][x] = s2[y][x]
+            for y in range(self.h):
+                self.screen.addstr(y, 0, ''.join(self.s1[y]))
 
+            self.screen.refresh()
+            sleep(self.speed)
+
+            for y in range(self.h):
+                for x in range(self.w):
+                    self.s1[y][x] = self.s2[y][x]
+
+
+    def update_cell(self, x, y):
+        state = self.s1[y][x]
+        neighbors = self.check_surroundings(x, y)
+
+        if self.wrap:
+            neighbors += self.check_wrap(x, y)
+
+        if self.s1[y][x] == self.dead_cell and neighbors == 3:
+            state = self.live_cell
+        elif neighbors < 2 or neighbors > 3:
+            state = self.dead_cell
+
+        return state
+
+
+    def check_surroundings(self, x, y):
+        neighbors = 0
+
+        if y - 1 >= 0 and self.s1[y - 1][x] == self.live_cell:
+            neighbors += 1
+        elif y - 1 < 0 and self.s1[self.h - 1][x] == self.live_cell:
+            neighbors += 1
+
+        if y + 1 < self.h and self.s1[y + 1][x] == self.live_cell:
+            neighbors += 1
+        elif y + 1 >= self.h and self.s1[0][x] == self.live_cell:
+            neighbors += 1
+
+        if x - 1 >= 0 and self.s1[y][x - 1] == self.live_cell:
+            neighbors += 1
+        elif x - 1 < 0 and self.s1[y][self.w - 1] == self.live_cell:
+            neighbors += 1
+
+        if x + 1 < self.w and self.s1[y][x + 1] == self.live_cell:
+            neighbors += 1
+        elif x + 1 >= self.w and self.s1[y][0] == self.live_cell:
+            neighbors += 1
+
+        if x - 1 >= 0 and y - 1 >= 0 and self.s1[y - 1][x - 1] == self.live_cell:
+            neighbors += 1
+
+        if x + 1 < self.w and y + 1 < self.h and self.s1[y + 1][x + 1] == self.live_cell:
+            neighbors += 1
+
+        if x + 1 < self.w and y - 1 >= 0 and self.s1[y - 1][x + 1] == self.live_cell:
+            neighbors += 1
+
+        if x - 1 >= 0 and y + 1 < self.h and self.s1[y + 1][x - 1] == self.live_cell:
+            neighbors += 1
+
+        return neighbors
+
+
+    def check_wrap(self, x, y):
+        neighbors = 0
+        if x - 1 < 0 and y - 1 >= 0 and self.s1[y - 1][self.w - 1] == self.live_cell:
+            neighbors += 1
+        elif x - 1 >= 0 and y - 1 < 0 and self.s1[self.h - 1][x - 1] == self.live_cell:
+            neighbors += 1
+        elif x - 1 < 0 and y - 1 < 0 and self.s1[self.h - 1][self.w - 1] == self.live_cell:
+            neighbors += 1
+
+        if x + 1 >= self.w and y + 1 < self.h and self.s1[y + 1][0] == self.live_cell:
+            neighbors += 1
+        elif x + 1 < self.w and y + 1 >= self.h and self.s1[0][x + 1] == self.live_cell:
+            neighbors += 1
+        elif x + 1 >= self.w and y + 1 >= self.h and self.s1[0][0] == self.live_cell:
+            neighbors += 1
+
+        if x + 1 >= self.w and y - 1 >= 0 and self.s1[y - 1][0] == self.live_cell:
+            neighbors += 1
+        elif x + 1 < self.w and y - 1 < 0 and self.s1[self.h - 1][x + 1] == self.live_cell:
+            neighbors += 1
+        elif x + 1 >= self.w and y - 1 < 0 and self.s1[self.h - 1][0] == self.live_cell:
+            neighbors += 1
+
+        if x - 1 < 0 and y + 1 >= self.h and self.s1[0][self.w - 1] == self.live_cell:
+            neighbors += 1
+        elif x - 1 >= 0 and y + 1 >= self.h and self.s1[0][x - 1] == self.live_cell:
+            neighbors += 1
+        elif x - 1 < 0 and y + 1 < self.h and self.s1[y + 1][self.w - 1] == self.live_cell:
+            neighbors += 1
+
+        return neighbors
 
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal.SIG_IGN)
+
     try:
-        curses.wrapper(main)
+        commands = sys.argv[1:]
+        if len(commands) >= 1:
+            if commands[0] in ['h','-h','help','--help']:
+                print('Game of Life\n\nControls:\nQ/q\t\tQuit\nUp/Right\t\tSpeed up\nDown/Left\t\tSlow down\nW/w\t\tToggle edge wrapping\nR/r\t\tNew random seed\n\nlife [h, -h, --help, help]\t\tdisplay this message')
+                sys.exit(0)
+            else:
+                print('Unknown argument: {}'.format(commands[0]))
+                sys.exit(1)
+
+        curses.wrapper(game_of_life)
     except:
         sys.exit(1)
