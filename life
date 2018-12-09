@@ -3,14 +3,17 @@ from random import randint
 from time import sleep
 import curses
 import sys
+import signal
 
+speed = 0.1
 
 def check_surroundings(x, y, arr, h, w):
     c = '\u2588'
     neighbors = 0
+
     if y - 1 >= 0 and arr[y - 1][x] == c:
         neighbors += 1
-    elif y - 1 < 0 and arr[h - 1][x]:
+    elif y - 1 < 0 and arr[h - 1][x] == c:
         neighbors += 1
 
     if y + 1 < h and arr[y + 1][x] == c:
@@ -20,21 +23,21 @@ def check_surroundings(x, y, arr, h, w):
 
     if x - 1 >= 0 and arr[y][x - 1] == c:
         neighbors += 1
-    elif x - 1 < 0 and arr[y][w - 1]:
+    elif x - 1 < 0 and arr[y][w - 1] == c:
         neighbors += 1
 
     if x + 1 < w and arr[y][x + 1] == c:
         neighbors += 1
-    elif x + 1 >= w and arr[y][0]:
+    elif x + 1 >= w and arr[y][0] == c:
         neighbors += 1
 
     if x - 1 >= 0 and y - 1 >= 0 and arr[y - 1][x - 1] == c:
         neighbors += 1
-    elif x - 1 < 0 and y - 1 >= 0 and arr[y - 1][w - 1]:
+    elif x - 1 < 0 and y - 1 >= 0 and arr[y - 1][w - 1] == c:
         neighbors += 1
-    elif x - 1 >= 0 and y - 1 < 0 and arr[h - 1][x - 1]:
+    elif x - 1 >= 0 and y - 1 < 0 and arr[h - 1][x - 1] == c:
         neighbors += 1
-    elif x - 1 < 0 and y - 1 < 0 and arr[h - 1][w - 1]:
+    elif x - 1 < 0 and y - 1 < 0 and arr[h - 1][w - 1] == c:
         neighbors += 1
 
     if x + 1 < w and y + 1 < h and arr[y + 1][x + 1] == c:
@@ -43,7 +46,7 @@ def check_surroundings(x, y, arr, h, w):
         neighbors += 1
     elif x + 1 < w and y + 1 >= h and arr[0][x + 1] == c:
         neighbors += 1
-    elif x + 1 >= w and y + 1 >= h and arr[0][0]:
+    elif x + 1 >= w and y + 1 >= h and arr[0][0] == c:
         neighbors += 1
 
     if x + 1 < w and y - 1 >= 0 and arr[y - 1][x + 1] == c:
@@ -70,22 +73,23 @@ def check_surroundings(x, y, arr, h, w):
 def update_cell(x, y, arr, h, w):
     state = arr[y][x]
     neighbors = check_surroundings(x, y, arr, h, w)
-    if neighbors < 2 and arr[y][x] == '\u2588':
-        state = ' '
-    elif neighbors > 3:
-        state = ' '
-    elif arr[y][x] == ' ' and neighbors == 3:
+    if arr[y][x] == ' ' and neighbors == 3:
         state = '\u2588'
+    elif neighbors < 2 or neighbors > 3:
+        state = ' '
+
     return state
 
 
 def random_start(arr,h,w):
     for y in range(h):
         for x in range(w):
-            arr[y][x] = '\u2588' if randint(1,6) == 5 else ' '
+            arr[y][x] = '\u2588' if randint(1,30) == 5 else ' '
 
 
 def main(screen):
+    global speed
+
     # terminal dimensions
     h = curses.LINES - 1
     w = curses.COLS - 1
@@ -96,13 +100,10 @@ def main(screen):
 
     s1 = [[' ' for x in range(w)] for y in range(h)]
     s2 = [[' ' for x in range(w)] for y in range(h)]
-    current = 0
-
-    # char to print for a live cell
-    c = '\u2588'
 
     #seed the first round
     random_start(s1,h,w)
+
     for y in range(h):
         for x in range(w):
             s2[y][x] = update_cell(x, y, s1, h, w)
@@ -114,10 +115,17 @@ def main(screen):
     while True:
         inp = screen.getch()
         curses.flushinp()
-        if inp == 113:
+        if inp == 113 or inp == 27 or inp == 81:
             sys.exit(0)
+        elif inp == curses.KEY_DOWN or inp == curses.KEY_LEFT:
+            if speed + 0.05 <= 0.8:
+                speed += 0.05
+        elif inp == curses.KEY_UP or inp == curses.KEY_RIGHT:
+            if speed - 0.05 >= 0:
+                speed -= 0.05
 
         screen.erase()
+
         for y in range(h):
             for x in range(w):
                 s2[y][x] = update_cell(x, y, s1, h, w)
@@ -125,12 +133,16 @@ def main(screen):
         for y in range(h):
             screen.addstr(y, 0, ''.join(s1[y]))
         screen.refresh()
-        sleep(0.1)
+        sleep(speed)
+
         for y in range(h):
             for x in range(w):
                 s1[y][x] = s2[y][x]
 
-        current = abs(current - 1)
 
 if __name__ == '__main__':
-    curses.wrapper(main)
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    try:
+        curses.wrapper(main)
+    except:
+        sys.exit(1)
