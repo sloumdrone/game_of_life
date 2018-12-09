@@ -33,39 +33,39 @@ def check_surroundings(x, y, arr, h, w):
 
     if x - 1 >= 0 and y - 1 >= 0 and arr[y - 1][x - 1] == c:
         neighbors += 1
-    elif x - 1 < 0 and y - 1 >= 0 and arr[y - 1][w - 1] == c:
-        neighbors += 1
-    elif x - 1 >= 0 and y - 1 < 0 and arr[h - 1][x - 1] == c:
-        neighbors += 1
-    elif x - 1 < 0 and y - 1 < 0 and arr[h - 1][w - 1] == c:
-        neighbors += 1
+    # elif x - 1 < 0 and y - 1 >= 0 and arr[y - 1][w - 1] == c:
+    #     neighbors += 1
+    # elif x - 1 >= 0 and y - 1 < 0 and arr[h - 1][x - 1] == c:
+    #     neighbors += 1
+    # elif x - 1 < 0 and y - 1 < 0 and arr[h - 1][w - 1] == c:
+    #     neighbors += 1
 
     if x + 1 < w and y + 1 < h and arr[y + 1][x + 1] == c:
         neighbors += 1
-    elif x + 1 >= w and y + 1 < h and arr[y + 1][0] == c:
-        neighbors += 1
-    elif x + 1 < w and y + 1 >= h and arr[0][x + 1] == c:
-        neighbors += 1
-    elif x + 1 >= w and y + 1 >= h and arr[0][0] == c:
-        neighbors += 1
+    # elif x + 1 >= w and y + 1 < h and arr[y + 1][0] == c:
+    #     neighbors += 1
+    # elif x + 1 < w and y + 1 >= h and arr[0][x + 1] == c:
+    #     neighbors += 1
+    # elif x + 1 >= w and y + 1 >= h and arr[0][0] == c:
+    #     neighbors += 1
 
     if x + 1 < w and y - 1 >= 0 and arr[y - 1][x + 1] == c:
         neighbors += 1
-    elif x + 1 >= w and y - 1 >= 0 and arr[y - 1][0] == c:
-        neighbors += 1
-    elif x + 1 < w and y - 1 < 0 and arr[h - 1][x + 1] == c:
-        neighbors += 1
-    elif x + 1 >= w and y - 1 < 0 and arr[h - 1][0] == c:
-        neighbors += 1
+    # elif x + 1 >= w and y - 1 >= 0 and arr[y - 1][0] == c:
+    #     neighbors += 1
+    # elif x + 1 < w and y - 1 < 0 and arr[h - 1][x + 1] == c:
+    #     neighbors += 1
+    # elif x + 1 >= w and y - 1 < 0 and arr[h - 1][0] == c:
+    #     neighbors += 1
 
     if x - 1 >= 0 and y + 1 < h and arr[y + 1][x - 1] == c:
         neighbors += 1
-    elif x - 1 < 0 and y + 1 >= h and arr[0][w - 1] == c:
-        neighbors += 1
-    elif x - 1 >= 0 and y + 1 >= h and arr[0][x - 1] == c:
-        neighbors += 1
-    elif x - 1 < 0 and y + 1 < h and arr[y + 1][w - 1] == c:
-        neighbors += 1
+    # elif x - 1 < 0 and y + 1 >= h and arr[0][w - 1] == c:
+    #     neighbors += 1
+    # elif x - 1 >= 0 and y + 1 >= h and arr[0][x - 1] == c:
+    #     neighbors += 1
+    # elif x - 1 < 0 and y + 1 < h and arr[y + 1][w - 1] == c:
+    #     neighbors += 1
 
     return neighbors
 
@@ -83,8 +83,13 @@ def update_cell(x, y, arr, h, w):
 
 def random_start(arr,h,w):
     for y in range(h):
+        offset = int(h * 0.2)
+        if y >= offset and y <= h - offset:
+            counter = 12
+        else:
+            counter = 75
         for x in range(w):
-            arr[y][x] = '\u2588' if randint(1,30) == 5 else ' '
+            arr[y][x] = '\u2588' if randint(1,counter) == 2 else ' '
 
 
 def main(screen):
@@ -117,6 +122,8 @@ def main(screen):
         curses.flushinp()
         if inp == 113 or inp == 27 or inp == 81:
             sys.exit(0)
+        elif inp == 114 or inp == 82:
+            random_start(s1, h, w)
         elif inp == curses.KEY_DOWN or inp == curses.KEY_LEFT:
             if speed + 0.05 <= 0.8:
                 speed += 0.05
